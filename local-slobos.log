@@ -1,0 +1,164 @@
+[KeepAlive] Self-ping system started (every 10 min)
+==================================================
+  Minecraft AFK Bot v2.3 - Bug Fix Edition
+==================================================
+Server: Homeground-axHO.aternos.me:12599
+Version: 1.19.3
+Auto-Reconnect: Enabled
+==================================================
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+[Server] HTTP server started on port 5000
+[Bot] [+] Successfully spawned on server!
+[Modules] Initializing all modules...
+[Rejoin] Using new leaveRejoin system.
+[Modules] All modules initialized!
+[AFK] Will leave in 255 seconds
+[Auth] Sent login commands
+[INFO] Attempted to set creative mode (requires OP)
+[AFK] Leaving server (timer)
+[Bot] Disconnected: disconnect.quitting
+[Cleanup] Clearing 8 intervals
+[Bot] Reconnecting in 12s (attempt #1, reason: periodic-rejoin)
+[Cleanup] Clearing 0 intervals
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+[Bot] [+] Successfully spawned on server!
+[Modules] Initializing all modules...
+[Rejoin] Using new leaveRejoin system.
+[Modules] All modules initialized!
+[AFK] Will leave in 345 seconds
+[Auth] Sent login commands
+[INFO] Attempted to set creative mode (requires OP)
+[Memory] Heap: 50.22 MB
+[Memory] Heap: 42.56 MB
+[AFK] Leaving server (timer)
+[Bot] Disconnected: disconnect.quitting
+[Cleanup] Clearing 8 intervals
+[Bot] Reconnecting in 12s (attempt #1, reason: periodic-rejoin)
+[Cleanup] Clearing 0 intervals
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[Bot] Error: read ECONNRESET
+[Bot] Network error detected (read ECONNRESET), forcing reconnect...
+[Cleanup] Clearing 0 intervals
+[Cleanup] Clearing 0 intervals
+[Bot] Reconnecting in 5s (attempt #2, reason: network)
+[Socket] Low-level socket error: read ECONNRESET
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[Bot] Error: read ECONNRESET
+[Bot] Network error detected (read ECONNRESET), forcing reconnect...
+[Cleanup] Clearing 0 intervals
+[Cleanup] Clearing 0 intervals
+[Bot] Reconnecting in 6s (attempt #3, reason: network)
+[Socket] Low-level socket error: read ECONNRESET
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+[Bot] [+] Successfully spawned on server!
+[Modules] Initializing all modules...
+[Rejoin] Using new leaveRejoin system.
+[Modules] All modules initialized!
+[AFK] Will leave in 419 seconds
+[Auth] Sent login commands
+[INFO] Attempted to set creative mode (requires OP)
+[Memory] Heap: 48.44 MB
+[AFK] Leaving server (timer)
+[Bot] Disconnected: disconnect.quitting
+[Cleanup] Clearing 8 intervals
+[Bot] Reconnecting in 12s (attempt #1, reason: periodic-rejoin)
+[Cleanup] Clearing 0 intervals
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[Bot] Error: read ECONNRESET
+[Bot] Network error detected (read ECONNRESET), forcing reconnect...
+[Cleanup] Clearing 0 intervals
+[Cleanup] Clearing 0 intervals
+[Bot] Reconnecting in 5s (attempt #2, reason: network)
+[Socket] Low-level socket error: read ECONNRESET
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+[Bot] [+] Successfully spawned on server!
+[Modules] Initializing all modules...
+[Rejoin] Using new leaveRejoin system.
+[Modules] All modules initialized!
+[AFK] Will leave in 266 seconds
+[Auth] Sent login commands
+[INFO] Attempted to set creative mode (requires OP)
+[Memory] Heap: 48.72 MB
+[AFK] Leaving server (timer)
+[Bot] Disconnected: disconnect.quitting
+[Cleanup] Clearing 8 intervals
+[Bot] Reconnecting in 12s (attempt #1, reason: periodic-rejoin)
+[Cleanup] Clearing 0 intervals
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[Bot] Error: read ECONNRESET
+[Bot] Network error detected (read ECONNRESET), forcing reconnect...
+[Cleanup] Clearing 0 intervals
+[Cleanup] Clearing 0 intervals
+[Bot] Reconnecting in 5s (attempt #2, reason: network)
+[Socket] Low-level socket error: read ECONNRESET
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+[Bot] [+] Successfully spawned on server!
+[Modules] Initializing all modules...
+[Rejoin] Using new leaveRejoin system.
+[Modules] All modules initialized!
+[AFK] Will leave in 381 seconds
+[Auth] Sent login commands
+[INFO] Attempted to set creative mode (requires OP)
+[Memory] Heap: 64.95 MB
+[AFK] Leaving server (timer)
+[Bot] Disconnected: disconnect.quitting
+[Cleanup] Clearing 8 intervals
+[Bot] Reconnecting in 12s (attempt #1, reason: periodic-rejoin)
+[Cleanup] Clearing 0 intervals
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+[Bot] Error: read ECONNRESET
+[Bot] Network error detected (read ECONNRESET), forcing reconnect...
+[Cleanup] Clearing 0 intervals
+[Cleanup] Clearing 0 intervals
+[Bot] Reconnecting in 5s (attempt #2, reason: network)
+[Socket] Low-level socket error: read ECONNRESET
+[Bot] Creating bot instance...
+[Bot] Connecting to Homeground-axHO.aternos.me:12599
+[Bot] [+] Successfully spawned on server!
+[Modules] Initializing all modules...
+[Rejoin] Using new leaveRejoin system.
+[Modules] All modules initialized!
+[AFK] Will leave in 314 seconds
+[Auth] Sent login commands
+[INFO] Attempted to set creative mode (requires OP)
+[Memory] Heap: 44.34 MB

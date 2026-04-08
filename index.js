@@ -17,6 +17,7 @@ let botState = {
   lastActivity: Date.now(),
   reconnectAttempts: 0,
   startTime: Date.now(),
+  lastSpawnAt: null,
   errors: []
 };
 
@@ -257,9 +258,14 @@ app.get('/tutorial', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
+  const sessionUptime = botState.lastSpawnAt
+    ? Math.floor((Date.now() - botState.lastSpawnAt) / 1000)
+    : 0;
   res.json({
     status: botState.connected ? 'connected' : 'disconnected',
     uptime: Math.floor((Date.now() - botState.startTime) / 1000),
+    sessionUptime,
+    lastSpawnAt: botState.lastSpawnAt ? new Date(botState.lastSpawnAt).toISOString() : null,
     coords: (bot && bot.entity) ? bot.entity.position : null,
     lastActivity: botState.lastActivity,
     reconnectAttempts: botState.reconnectAttempts,
@@ -329,11 +335,48 @@ let bot = null;
 let activeIntervals = [];
 let reconnectTimeout = null;
 let isReconnecting = false;
+let connectionTimeout = null;
+let currentConnectAttempt = 0;
+let intentionalLeaveInProgress = false;
 
 function clearAllIntervals() {
   console.log(`[Cleanup] Clearing ${activeIntervals.length} intervals`);
   activeIntervals.forEach(id => clearInterval(id));
   activeIntervals = [];
+}
+
+function clearConnectionTimeout() {
+  if (connectionTimeout) {
+    clearTimeout(connectionTimeout);
+    connectionTimeout = null;
+  }
+}
+
+function destroyCurrentBot() {
+  if (!bot) return;
+
+  clearAllIntervals();
+  clearConnectionTimeout();
+
+  try {
+    bot.removeAllListeners();
+  } catch (e) {
+    console.log('[Cleanup] Error removing listeners:', e.message);
+  }
+
+  try {
+    bot.end();
+  } catch (e) {
+    console.log('[Cleanup] Error ending previous bot:', e.message);
+  }
+
+  try {
+    bot._client?.socket?.destroy();
+  } catch (e) {
+    console.log('[Cleanup] Error destroying socket:', e.message);
+  }
+
+  bot = null;
 }
 
 function addInterval(callback, delay) {
@@ -342,16 +385,19 @@ function addInterval(callback, delay) {
   return id;
 }
 
-function getReconnectDelay() {
-  // Aggressive reconnection: fast, flat delay or very subtle backoff
-  const baseDelay = config.utils['auto-reconnect-delay'] || 2000;
-  const maxDelay = config.utils['max-reconnect-delay'] || 15000;
+function getReconnectDelay(reason = 'generic') {
+  const baseDelay = config.utils['auto-reconnect-delay'] || 4000;
+  const maxDelay = config.utils['max-reconnect-delay'] || 12000;
+  const networkBaseDelay = config.utils['network-reconnect-delay'] || Math.max(2500, baseDelay - 1000);
+  const duplicateBaseDelay = config.utils['duplicate-login-reconnect-delay'] || Math.max(10000, baseDelay + 4000);
+  const periodicBaseDelay = config.utils['periodic-rejoin-reconnect-delay'] || Math.max(6000, baseDelay + 2000);
 
-  // Use a much gentler backoff or just a flat delay if user wants "lower"
-  // Current logic: attempts * 1000 + base, capped at max
-  const delay = Math.min(baseDelay + (botState.reconnectAttempts * 1000), maxDelay);
+  let effectiveBaseDelay = baseDelay;
+  if (reason === 'network') effectiveBaseDelay = networkBaseDelay;
+  if (reason === 'duplicate-login') effectiveBaseDelay = duplicateBaseDelay;
+  if (reason === 'periodic-rejoin') effectiveBaseDelay = periodicBaseDelay;
 
-  return delay;
+  return Math.min(effectiveBaseDelay + (botState.reconnectAttempts * 1000), maxDelay);
 }
 
 function createBot() {
@@ -360,17 +406,14 @@ function createBot() {
     return;
   }
 
+  currentConnectAttempt += 1;
+  const attemptId = currentConnectAttempt;
+
   // Cleanup previous bot
-  if (bot) {
-    clearAllIntervals();
-    try {
-      bot.removeAllListeners();
-      bot.end();
-    } catch (e) {
-      console.log('[Cleanup] Error ending previous bot:', e.message);
-    }
-    bot = null;
-  }
+  destroyCurrentBot();
+
+  botState.connected = false;
+  intentionalLeaveInProgress = false;
 
   console.log(`[Bot] Creating bot instance...`);
   console.log(`[Bot] Connecting to ${config.server.ip}:${config.server.port}`);
@@ -410,20 +453,26 @@ function createBot() {
       }
     });
 
-    // Connection timeout - if no spawn in 60s, reconnect
-    const connectionTimeout = setTimeout(() => {
+    // Connection timeout - if no spawn in 45s, reconnect and destroy the stale attempt
+    clearConnectionTimeout();
+    connectionTimeout = setTimeout(() => {
+      if (attemptId !== currentConnectAttempt) return;
       if (!botState.connected) {
         console.log('[Bot] Connection timeout - no spawn received');
-        scheduleReconnect();
+        destroyCurrentBot();
+        scheduleReconnect('timeout');
       }
-    }, 60000);
+    }, 45000);
 
     bot.once('spawn', () => {
-      clearTimeout(connectionTimeout);
+      if (attemptId !== currentConnectAttempt) return;
+      clearConnectionTimeout();
       botState.connected = true;
       botState.lastActivity = Date.now();
+      botState.lastSpawnAt = Date.now();
       botState.reconnectAttempts = 0;
       isReconnecting = false;
+      intentionalLeaveInProgress = false;
 
       console.log(`[Bot] [+] Successfully spawned on server!`);
       if (config.discord && config.discord.events.connect) {
@@ -441,7 +490,7 @@ function createBot() {
       initializeModules(bot, mcData, defaultMove);
 
       // Setup enhanced Leave/Rejoin logic
-      setupLeaveRejoin(bot, createBot);
+      setupLeaveRejoin(bot, createBot, markIntentionalLeave);
 
       setTimeout(() => {
         if (bot && botState.connected) {
@@ -474,7 +523,8 @@ function createBot() {
 
     // Handle disconnection
     bot.on('end', (reason) => {
-      const wasSpawned = botState.connected;
+      if (attemptId !== currentConnectAttempt) return;
+      clearConnectionTimeout();
       console.log(`[Bot] Disconnected: ${reason || 'Unknown reason'}`);
       botState.connected = false;
       clearAllIntervals();
@@ -484,12 +534,14 @@ function createBot() {
       }
 
       if (config.utils['auto-reconnect']) {
-        scheduleReconnect();
+        const reconnectReason = intentionalLeaveInProgress ? 'periodic-rejoin' : 'end';
+        scheduleReconnect(reconnectReason);
       }
     });
 
     bot.on('kicked', (reason) => {
-      const wasSpawned = botState.connected;
+      if (attemptId !== currentConnectAttempt) return;
+      clearConnectionTimeout();
       console.log(`[Bot] Kicked: ${reason}`);
       botState.connected = false;
       botState.errors.push({ type: 'kicked', reason, time: Date.now() });
@@ -500,11 +552,14 @@ function createBot() {
       }
 
       if (config.utils['auto-reconnect']) {
-        scheduleReconnect();
+        const duplicateLogin = String(reason).includes('The same username is already playing on the server!');
+        scheduleReconnect(duplicateLogin ? 'duplicate-login' : 'kicked');
       }
     });
 
     bot.on('error', (err) => {
+      if (attemptId !== currentConnectAttempt) return;
+      clearConnectionTimeout();
       console.log(`[Bot] Error: ${err.message}`);
       botState.errors.push({ type: 'error', message: err.message, time: Date.now() });
 
@@ -513,25 +568,32 @@ function createBot() {
       const networkErrors = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'ECONNABORTED', 'EHOSTUNREACH', 'ENETUNREACH', 'EPIPE', 'EAI_AGAIN'];
       const isNetworkError = networkErrors.some(code => err.message && err.message.includes(code));
       if (isNetworkError) {
+        if (intentionalLeaveInProgress) {
+          console.log(`[Bot] Ignoring network error during intentional leave: ${err.message}`);
+          return;
+        }
         console.log(`[Bot] Network error detected (${err.message}), forcing reconnect...`);
         botState.connected = false;
         clearAllIntervals();
         if (config.utils['auto-reconnect']) {
-          scheduleReconnect();
+          destroyCurrentBot();
+          scheduleReconnect('network');
         }
       }
       // For non-network errors, let 'end' event handle reconnection
     });
 
   } catch (err) {
+    clearConnectionTimeout();
     console.log(`[Bot] Failed to create bot: ${err.message}`);
-    scheduleReconnect();
+    scheduleReconnect('create-failed');
   }
 }
 
-function scheduleReconnect() {
+function scheduleReconnect(reason = 'generic') {
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
   }
 
   if (isReconnecting) {
@@ -541,13 +603,18 @@ function scheduleReconnect() {
   isReconnecting = true;
   botState.reconnectAttempts++;
 
-  const delay = getReconnectDelay();
-  console.log(`[Bot] Reconnecting in ${delay / 1000}s (attempt #${botState.reconnectAttempts})`);
+  const delay = getReconnectDelay(reason);
+  console.log(`[Bot] Reconnecting in ${delay / 1000}s (attempt #${botState.reconnectAttempts}, reason: ${reason})`);
 
   reconnectTimeout = setTimeout(() => {
     isReconnecting = false;
+    reconnectTimeout = null;
     createBot();
   }, delay);
+}
+
+function markIntentionalLeave() {
+  intentionalLeaveInProgress = true;
 }
 
 // ============================================================
