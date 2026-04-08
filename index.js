@@ -427,7 +427,7 @@ function createBot() {
       port: config.server.port,
       version: config.server.version,
       hideErrors: false,
-      checkTimeoutInterval: 120000, // 2 minutes - detects dead connections without false-positive disconnects
+      checkTimeoutInterval: config.server['check-timeout-interval'] || 180000,
       connectTimeout: 30000, // 30s - abort initial TCP connection if server unreachable (prevents ETIMEDOUT hangs)
       closeTimeout: 10000 // 10s - time to wait for graceful close before forcing
     });
@@ -449,7 +449,7 @@ function createBot() {
           socket.destroy();
         });
         // Set an inactivity timeout on the socket itself (3 minutes)
-        socket.setTimeout(180000);
+        socket.setTimeout(Math.max(config.server['check-timeout-interval'] || 180000, 180000));
       }
     });
 
@@ -982,7 +982,9 @@ process.on('uncaughtException', (err) => {
 
   // Safety: ignore known transient network errors that bubble up uncaught
   const transientErrors = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'ECONNABORTED', 'EHOSTUNREACH', 'ENETUNREACH', 'EPIPE', 'EAI_AGAIN', 'ERR_SOCKET_CLOSED'];
-  const isTransient = transientErrors.some(code => err.message && err.message.includes(code));
+  const timeoutPhrases = ['client timed out after', 'keepalive timeout'];
+  const isTransient = transientErrors.some(code => err.message && err.message.includes(code))
+    || timeoutPhrases.some(text => err.message && err.message.toLowerCase().includes(text));
   if (isTransient) {
     console.log('[FATAL] Transient network error caught globally, will reconnect...');
   }
@@ -991,10 +993,12 @@ process.on('uncaughtException', (err) => {
   // The user wants the server to stay up "all the time no matter what".
   // We just clear intervals and try to restart the bot logic.
   if (config.utils['auto-reconnect']) {
+    botState.connected = false;
+    destroyCurrentBot();
     clearAllIntervals();
     // Wrap in a tiny timeout to prevent tight loops if the error is synchronous
     setTimeout(() => {
-      scheduleReconnect();
+      scheduleReconnect(isTransient ? 'network' : 'uncaught');
     }, isTransient ? 3000 : 1000); // Wait a bit longer for network issues to settle
   }
 });
